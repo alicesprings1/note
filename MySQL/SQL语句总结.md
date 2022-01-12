@@ -120,7 +120,7 @@ where NOT vend_id='DLL01';
 
 - 文本处理函数
 
-  <img src="D:\学习\note\MySQL\SQL语句总结.assets\image-20220113003754426.png" alt="image-20220113003754426" style="zoom:50%;" />
+  <img src="SQL语句总结.assets/image-20220113003754426.png" style="zoom:50%;" />
 
 - 日期和时间处理函数
 
@@ -132,7 +132,7 @@ where NOT vend_id='DLL01';
 
 - 数值处理函数
 
-  <img src="D:\学习\note\MySQL\SQL语句总结.assets\image-20220113004042516.png" alt="image-20220113004042516" style="zoom:50%;" />
+  <img src="SQL语句总结.assets/image-20220113004042516.png" style="zoom:50%;" />
 
 ### 汇总数据
 
