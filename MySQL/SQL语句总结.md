@@ -87,3 +87,106 @@ where NOT vend_id='DLL01';
 
   - 不要过度使用通配符
   - 在确实需要使用通配符时，也尽量不要把它们用在搜索模式的开始处。把通配符置于开始处，搜索起来是最慢的
+
+### 创建计算字段
+
+- 拼接字段
+
+  ```mysql
+  select Concat(vend_name,' (',vend_country,')') # 拼接的字段、字符串用逗号分隔 Concat函数
+  from Vendors;
+  ```
+
+  - 使用RTRIM()函数去除字符串右边多余的空格
+
+    ```mysql
+    select Concat(RTRIM(vend_name),' (',RTRIM(vend_country),')') # 拼接字段并去除字符串右边多余的空格
+    from Vendors;
+    ```
+
+  - LTRIM() TRIM() 函数
+
+  - 列别名（导出列）
+
+    ```mysql
+    select Concat(RTRIM(vend_name),' (',RTRIM(vend_country),')') 
+    AS vend_title
+    from Vendors;
+    ```
+
+  - 算数计算 + - * /
+
+### 使用函数处理数据
+
+- 文本处理函数
+
+  <img src="D:\学习\note\MySQL\SQL语句总结.assets\image-20220113003754426.png" alt="image-20220113003754426" style="zoom:50%;" />
+
+- 日期和时间处理函数
+
+  ```mysql
+  select order_num
+  from Orders
+  where YEAR(order_date)=2012;
+  ```
+
+- 数值处理函数
+
+  <img src="D:\学习\note\MySQL\SQL语句总结.assets\image-20220113004042516.png" alt="image-20220113004042516" style="zoom:50%;" />
+
+### 汇总数据
+
+- 聚集函数
+
+  - AVG()
+
+    ```mysql
+    select AVG(prod_price) as avg_price 
+    from Products;
+    ```
+
+    - AVG忽略NULL值
+    - AVG只能作用于单列
+
+  - COUNT()
+
+    ```mysql
+    select COUNT(*) as num_cust # COUNT(*)对表中行数进行计数，不忽略NULL值
+    from Customers;
+    ```
+
+    ```mysql
+    select COUNT(cust_email) as num_cust # 只对cust_email列有值的行进行计数
+    from Customers;
+    ```
+
+  - MAX() MIN()
+
+    ```mysql
+    select MAX(prod_price) as max_price
+    from Products;
+    ```
+
+    - 虽然MAX()一般用来找出最大的数值或日期值，但许多（并非所有）DBMS允许将它用来返回任意列中的最大值，包括返回文本列中的最大值。在用于文本数据时，MAX()返回按该列排序后的最后一行。MAX()函数忽略列值为NULL的行。
+    - 虽然MIN()一般用来找出最小的数值或日期值，但许多（并非所有）DBMS允许将它用来返回任意列中的最小值，包括返回文本列中的最小值。在用于文本数据时，MIN()返回该列排序后最前面的行。
+
+  - SUM()
+
+    ```mysql
+    select SUM(item_price*quantity) as total_price
+    from OrderItems;
+    ```
+
+    - SUM()函数忽略列值为NULL的行
+
+- 聚集不同值
+
+  - DISTINCT
+
+    ```mysql
+    select AVG(DISTINCT prod_price) as avg_price
+    from Products;
+    ```
+
+    - DISTINCT 不能用于COUNT(*)
+
