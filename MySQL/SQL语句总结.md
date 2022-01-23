@@ -379,4 +379,244 @@ join操作
     group by Customers.cust_id;
     ```
 
-    
+    ### 组合查询
+
+    多数SQL查询只包含从一个或多个表中返回数据的单条SELECT语句。但是，SQL也允许执行多个查询（多条SELECT语句），并将结果作为一个查询结果集返回。这些组合查询通常称为并（union）或复合查询（compound query）。任何具有多个WHERE子句的SELECT语句都可以作为一个组合查询
+
+  - 创建组合查询
+
+    - 使用UNION
+
+      ```mysql
+      select cust_name,cust_contact,cust_email
+      from Customers
+      where cust_state in('IL','IN','MI')
+      UNION
+      select cust_name,cust_contact,cust_email
+      from Customers
+      where cust_name='Fun4All';
+      ```
+
+      ```mysql
+      select cust_name,cust_contact,cust_email
+      from Customers
+      where cust_state in('IL','IN','MI') or cust_name='Fun4All'; 
+      ```
+
+      在这个简单的例子中，使用UNION可能比使用WHERE子句更为复杂。但对于较复杂的过滤条件，或者从多个表（而不是一个表）中检索数据的情形，使用UNION可能会使处理更简单
+
+  - UNION规则
+
+    - UNION必须由两条或两条以上的SELECT语句组成，语句之间用关键字UNION分隔
+    - UNION中的每个查询必须包含相同的列、表达式或聚集函数（不过，各个列不需要以相同的次序列出）。
+    - 列数据类型必须兼容：类型不必完全相同，但必须是DBMS可以隐含转换的类型（例如，不同的数值类型或不同的日期类型）。
+
+  - 包含或消除重复的行
+
+    UNION从查询结果集中自动去除了重复的行；换句话说，它的行为与一条SELECT语句中使用多个WHERE子句条件一样。这是UNION的默认行为，如果愿意也可以改变它。事实上，如果想返回所有的匹配行，可使用UNION ALL而不是UNION。
+
+    ```mysql
+    select cust_name,cust_contact,cust_email
+    from Customers
+    where cust_state in('IL','IN','MI')
+    UNION ALL
+    select cust_name,cust_contact,cust_email
+    from Customers
+    where cust_name='Fun4All';
+    ```
+
+  - 对组合查询结果排序
+
+    SELECT语句的输出用ORDER BY子句排序。在用UNION组合查询时，只能使用一条ORDER BY子句，它必须位于最后一条SELECT语句之后。对于结果集，不存在用一种方式排序一部分，而又用另一种方式排序另一部分的情况，因此不允许使用多条ORDER BY子句。
+
+    ```mysql
+    select cust_name,cust_contact,cust_email
+    from Customers
+    where cust_state in('IL','IN','MI')
+    UNION
+    select cust_name,cust_contact,cust_email
+    from Customers
+    where cust_name='Fun4All'
+    order by cust_name,cust_contact;
+    ```
+
+    UNION在需要组合多个表的数据时也很有用，即使是有不匹配列名的表，在这种情况下，可以将UNION与别名组合，检索一个结果集。
+
+### 插入数据
+
+- 插入完整的行
+
+  ```mysql
+  insert into Customers
+  values('10000006','Toy Land','NY');
+  ```
+
+  存储到表中每一列的数据在VALUES子句中给出，必须给每一列提供一个值。如果某列没有值，如上面的cust_contact和cust_email列，则应该使用NULL值（假定表允许对该列指定空值）。各列必须以它们在表定义中出现的次序填充。
+
+  **虽然这种语法很简单，但并不安全，应该尽量避免使用。上面的SQL语句高度依赖于表中列的定义次序，还依赖于其容易获得的次序信息。即使可以得到这种次序信息，也不能保证各列在下一次表结构变动后保持完全相同的次序。因此，编写依赖于特定列次序的SQL语句是很不安全的，这样做迟早会出问题。最好明确给出列名**
+
+```mysql
+insert into Customers(
+    cust_id,
+    cust_name,
+    cust_city
+)
+values('10000006','Toy Land','NY');
+```
+
+不要使用没有明确给出列的INSERT语句。给出列能使SQL代码继续发挥作用，即使表结构发生了变化。不管使用哪种INSERT语法，VALUES的数目都必须正确。如果不提供列名，则必须给每个表列提供一个值；如果提供列名，则必须给列出的每个列一个值。
+
+- 插入部分行
+
+  ```mysql
+  insert into Customers(
+  	cust_id,
+      cust_name,
+      cust_address,
+      cust_city,
+      cust_state,
+      cust_zip,
+      cust_country
+  )
+  values(
+  	'10000006',
+      'Toy Land',
+      '123 Any Street',
+      'New York',
+      'NY',
+      '11111',
+      'USA'
+  );
+  ```
+
+  在本课前面的例子中，没有给cust_contact和cust_email这两列提供值。这表示没必要在INSERT语句中包含它们。因此，这里的INSERT语句省略了这两列及其对应的值。
+
+  - 省略列
+    - 该列定义为允许NULL值（无值或空值）。
+    - 或在表定义中给出默认值。这表示如果不给出值，将使用默认值。
+
+- 插入检索出的数据 insert select
+
+  ```mysql
+  insert into Customers(
+  	cust_id,
+      cust_name,
+      cust_address,
+      cust_city,
+      cust_state,
+      cust_zip,
+      cust_country
+  )
+  select cust_id,
+      cust_name,
+      cust_address,
+      cust_city,
+      cust_state,
+      cust_zip,
+      cust_country
+  from CustNew;
+  ```
+
+  这个例子使用INSERT SELECT从CustNew中将所有数据导入Customers。为简单起见，这个例子在INSERT和SELECT语句中使用了相同的列名。但是，不一定要求列名匹配。事实上，**DBMS一点儿也不关心SELECT返回的列名。它使用的是列的位置**，因此SELECT中的第一列（不管其列名）将用来填充表列中指定的第一列，第二列将用来填充表列中指定的第二列，如此等等。
+
+  INSERT通常只插入一行。要插入多行，必须执行多个INSERT语句。INSERTSELECT是个例外，它可以用一条INSERT插入多行，不管SELECT语句返回多少行，都将被INSERT插入。
+
+- 从一个表复制到另一个表 
+
+  ```mysql
+  create table CustCopy as
+  select * from Customers;
+  ```
+
+  这条语句创建一个名为CustCopy的新表，并把Customers表的整个内容复制到新表中。
+  - 任何SELECT选项和子句都可以使用，包括WHERE和GROUP BY
+  - 可利用联结从多个表插入数据
+  - 不管从多少个表中检索数据，数据都只能插入到一个表中
+
+### 更新和删除数据
+
+- 更新数据 UPDATE
+
+  - 组成
+
+    - 要更新的表
+    - 列名和它们的新值
+    - 确定更新哪些行的过滤条件
+
+    ```mysql
+    update Customers
+    set cust_email='aaa@bb.com'
+    	cust_contact='Sam'
+    where cust_id='1000000';
+    ```
+
+    UPDATE语句中可以使用子查询，使得能用SELECT语句检索出的数据更新列数据。
+
+- 删除数据 DELETE
+
+  ```mysql
+  delete from Customers
+  where cust_id='10000000';
+  ```
+
+  如果想从表中删除所有行，不要使用DELETE。可使用TRUNCATE TABLE语句，它完成相同的工作，而速度更快
+
+### 创建和操纵表
+
+- 创建表CREATE TABLE
+
+  ```mysql
+  create table Products
+  (
+      prod_id CHAR(10) NOT NULL,
+      vend_id CHAR(10) NOT NULL,
+      prod_name CHAR(254) NOT NULL
+  );
+  ```
+
+  在创建新的表时，指定的表名必须不存在，否则会出错。防止意外覆盖已有的表，SQL要求首先手工删除该表（请参阅后面的内容），然后再重建它，而不是简单地用创建表语句覆盖它。
+
+- 使用NULL值
+
+  NULL值就是没有值或缺值。允许NULL值的列也允许在插入行时不给出该列的值。不允许NULL值的列不接受没有列值的行。
+
+  多数DBMS中NULL为默认设置，不指定NOT NULL时，就认为指定的是NULL。
+
+- 指定默认值 DEFAULT
+
+  ```mysql
+  create table OrderItems
+  (
+      order_num INTEGER NOT NULL,
+      quantity INTEGER NOT NULL DEFAULT 1
+  );
+  ```
+
+  默认值常用于时间或时间戳列。MYSQL用户指定 DEFAULT CURRENT_DATE()
+
+- 更新表 ALTER TABLE
+
+  ```mysql
+  # 给已有表增加列
+  alter table Vendors
+  add vend_phone CHAR(20);
+  
+  # 删除列
+  alter table Vendors
+  drop column vend_phone;
+  ```
+
+  - 复杂表的结构更改一般需要手动删除过程，它涉及以下步骤
+    - 用新的列布局创建一个新表
+    - 使用INSERT SELECT语句从旧表复制数据到新表。有必要的话，可以使用转换函数和计算字段
+    - 检验包含所需数据的新表
+    - 重命名旧表（如果确定，可以删除它）
+    - 用旧表原来的名字重命名新表
+    - 根据需要，重新创建触发器、存储过程、索引和外键
+
+- 删除表 DROP TABLE
+
+- 重命名表 RENAME
+
+  
+
