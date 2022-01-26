@@ -618,5 +618,213 @@ values('10000006','Toy Land','NY');
 
 - 重命名表 RENAME
 
+### 使用视图
+
+- 视图
+
+  视图是虚拟的表。与包含数据的表不一样，视图只包含使用时动态检索数据的查询。
+
+  ```mysql
+  select cust_name,cust_contact
+  from ProductCustomers
+  where prod_id='RGAN01';
+  ```
+
+  ProductCustomers是一个视图，它不包含任何列或数据，包含的是一个查询（与上面用以正确联结表的查询相同）。
+
+  - 视图的常见应用
+    - 重用SQL语句。
+    - 简化复杂的SQL操作。在编写查询后，可以方便地重用它而不必知道其基本查询细节。
+    - 使用表的一部分而不是整个表。
+    - 保护数据。可以授予用户访问表的特定部分的权限，而不是整个表的访问权限。
+    - 更改数据格式和表示。视图可返回与底层表的表示和格式不同的数据。
+
+  创建视图之后，可以用与表基本相同的方式使用它们。可以对视图执行SELECT操作，过滤和排序数据，将视图联结到其他视图或表，甚至添加和更新数据。
+
+  视图仅仅是用来查看存储在别处数据的一种设施。视图本身不包含数据，因此返回的数据是从其他表中检索出来的。在添加或更改这些表中的数据时，视图将返回改变过的数据。
+
+- 创建视图 CREATE VIEW
+
+- 视图重命名 必须先删除它然后再重新创建 DROP VIEW viewname
+
+- 利用视图简化复杂的联结
+
+  ```mysql
+  CREATE VIEW ProductCustomers AS
+  select cust_name,cust_contact,prod_id
+  from Customers,Orders,OrderItems
+  where Customers.cust_id=Orders.cust_id
+  and OrderItems.order_num=Orders.order_num;
   
+  select cust_name,cust_contacnt
+  from ProductCustomers
+  where prod_id='RGAN01';
+  ```
+
+- 用视图重新格式化检索出的数据
+
+  ```mysql
+  create view VendorLocations as
+  select RTRIM(vend_name)+' ('+RTRIM(vend_country)+' )'
+  as vend_title
+  from Vendors;
+  ```
+
+- 用视图过滤不想要的数据
+
+  ```mysql
+  create view CustomerEMailList as
+  select cust_id,cust_name,cust_email
+  from Customers
+  where cust_email is not null;
+  ```
+
+- 使用视图与计算字段
+
+  ```mysql
+  create view OrderItemsExpanded as 
+  select order_num,prod_id,quantity,item_price,
+  		quantity*item_price as expanded_price
+  from OrderItems;
+  ```
+
+### 使用存储过程
+
+- 存储过程
+
+  简单来说，存储过程就是为以后使用而保存的一条或多条SQL语句。可将其视为批文件，虽然它们的作用不仅限于批处理。
+
+- 执行存储过程
+
+  ```mysql
+  EXECUTE AddNewProduct(
+      'JTS01',
+      'Stuffed Eifffel Tower',
+      6.49,
+      'Plush stuffed toy with the text La Tour Eiffel in red white and blue'
+  );
+  ```
+
+- 创建存储过程
+
+  ```mysql
+  CREATE PROCEDURE MailingListCount(
+      ListCount OUT INTEGER
+  )
+  IS
+  v_rows INTEGER;
+  BEGIN
+  	select count(*) INTO v_rows
+  	from Customers
+  	where not cust_email is null
+  	ListCount := v_rows;
+  END;
+  ```
+
+  这个存储过程有一个名为ListCount的参数。此参数从存储过程返回一个值而不是传递一个值给存储过程。关键字OUT用来指示这种行为。Oracle支持IN（传递值给存储过程）、OUT（从存储过程返回值，如这里）、INOUT（既传递值给存储过程也从存储过程传回值）类型的参数。存储过程的代码括在BEGIN和END语句中，这里执行一条简单的SELECT语句，它检索具有邮件地址的顾客。然后用检索出的行数设置ListCount（要传递的输出参数）。
+
+### 管理事务处理
+
+事务处理是一种机制，用来管理必须成批执行的SQL操作，保证数据库不包含不完整的操作结果。利用事务处理，可以保证一组操作不会中途停止，它们要么完全执行，要么完全不执行（除非明确指示）。如果没有错误发生，整组语句提交给（写到）数据库表；如果发生错误，则进行回退（撤销），将数据库恢复到某个已知且安全的状态。
+
+> 事务（transaction）指一组SQL语句
+>
+> 回退（rollback）指撤销指定SQL语句的过程
+>
+> 提交（commit）指将未存储的SQL语句结果写入数据库表
+>
+> 保留点（savepoint）指事务处理中设置的临时占位符（placeholder），可以对它发布回退（与回退整个事务处理不同）
+
+事务处理用来管理INSERT、UPDATE和DELETE语句。不能回退SELECT语句（回退SELECT语句也没有必要），也不能回退CREATE或DROP操作。事务处理中可以使用这些语句，但进行回退时，这些操作也不撤销。
+
+管理事务的关键在于将SQL语句组分解为逻辑块，并明确规定数据何时应该回退，何时不应该回退。
+
+```mysql
+START TRANSACTION
+...
+```
+
+- 使用ROLLBACK
+
+  ```mysql
+  delete from Orders;
+  ROLLBACK;
+  ```
+
+  在事务处理块中，DELETE操作（与INSERT和UPDATE操作一样）并不是最终的结果。
+
+- 使用COMMIT
+
+  一般的SQL语句都是针对数据库表直接执行和编写的。这就是所谓的**隐式提交**（implicit commit），即提交（写或保存）操作是自动进行的。在事务处理块中，提交不会隐式进行。不过，不同DBMS的做法有所不同。有的DBMS按隐式提交处理事务端，有的则不这样。
+
+  ```mysql
+  START TRANSACTION
+  ...
+  COMMIT TRANSACTION
+  ```
+
+- 使用保留点
+
+  要支持回退部分事务，必须在事务处理块中的合适位置放置占位符。这样，如果需要回退，可以回退到某个占位符。
+
+  ```mysql
+  SAVEPOINT deletel;
+  ```
+
+  每个保留点都要取能够标识它的唯一名字，以便在回退时，DBMS知道回退到何处。
+
+  ```mys
+  ROLLBACK TO deletel;
+  ```
+
+### 游标
+
+游标（cursor）是一个存储在DBMS服务器上的数据库查询，它不是一条SELECT语句，而是被该语句检索出来的结果集。在存储了游标之后，应用程序可以根据需要滚动或浏览其中的数据。游标主要用于交互式应用，其中用户需要滚动屏幕上的数据，并对数据进行浏览或做出更改。
+
+- 创建游标
+
+  ```mysql
+  DECLARE CustCursor CURSOR
+  FOR
+  select * from Customers
+  where cust_email is null
+  ```
+
+- 使用游标
+
+  ```mysql
+  OPEN CURSOR CustCursor
+  ```
+
+- 关闭游标
+
+  ```mysql
+  CLOSE CustCursor
+  ```
+
+  一旦游标关闭，如果不再次打开，将不能使用。第二次使用它时不需要再声明，只需用OPEN打开它即可。
+
+### SQL高级特性
+
+- 约束
+
+  - 主键 PRIMARY KEY
+  - 外键 FOREIGN KEY REFERENCES
+  - 唯一约束 UNIQUE
+  - 检查约束 CHECK
+
+- 索引
+
+  - 建立索引
+
+    ```mysql
+    CREATE INDEX prod_name_ind
+    ON Products(prod_name);
+    ```
+
+- 触发器
+
+  触发器是特殊的存储过程，它在特定的数据库活动发生时自动执行。触发器可以与特定表上的INSERT、UPDATE和DELETE操作（或组合）相关联。
+
+  与存储过程不一样（存储过程只是简单的存储SQL语句），触发器与单个的表相关联。与Orders表上的INSERT操作相关联的触发器只在Orders表中插入行时执行。类似地，Customers表上的INSERT和UPDATE操作的触发器只在表上出现这些操作时执行。
 
